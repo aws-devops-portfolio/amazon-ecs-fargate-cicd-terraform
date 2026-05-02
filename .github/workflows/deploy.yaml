@@ -5,9 +5,9 @@ on:
     branches: 
       - main 
       - develop
-  #  paths:
-  #    - "terraform/**"
-  #    - "product-app/**"
+    paths:
+      - "terraform/**"
+      - "product-app/**"
   workflow_dispatch:
 
 permissions:
