@@ -2,7 +2,9 @@
 Docker image deployment to ECS with Terraform and CICD
 
 ## OVERVIEW
-This project provisions a secure AWS VPC, deploys a Springboot application on ECS Fargate
+This project demonstrates a production-style, multi-environment deployment pipeline for containerized applications on AWS using ECS Fargate, Terraform, Docker, and GitHub Actions.
+
+The solution provisions isolated development and production environments using Infrastructure as Code (Terraform), with automated CI/CD workflows deploying application updates to Amazon ECS Fargate.
 
 ## ARCHITECTURE
 - Terraform - infrasture as code
@@ -26,6 +28,43 @@ This project provisions a secure AWS VPC, deploys a Springboot application on EC
 
 ## DIAGRAM
 ![alt text](<images/architecture.png>)
+
+## Multi-Environment Deployment
+
+The project supports separate `dev` and `prod` environments using environment-specific Terraform backend and variable configurations.
+
+Each environment provisions isolated AWS resources, including:
+
+- VPC and networking components
+- ECS Cluster and ECS Service
+- ECR repositories
+- Application Load Balancer
+- CloudWatch monitoring
+- Route 53 DNS configuration
+- ECS Service Auto Scaling
+
+Environment selection is automated through GitHub Actions branch-based deployments:
+
+| Branch  | Environment |
+|---------|-------------|
+| develop | dev         |
+| main    | prod        |
+
+Terraform state files are separated per environment using dedicated backend configuration files.
+
+## CI/CD Workflow
+
+The GitHub Actions pipeline automates both infrastructure provisioning and application deployment.
+
+Workflow process:
+
+1. Developer pushes code to `develop` or `main`
+2. GitHub Actions authenticates to AWS using OIDC
+3. Terraform provisions or updates AWS infrastructure
+4. Maven builds the Spring Boot application
+5. Docker image is built and pushed to Amazon ECR
+6. ECS task definition is updated with the new image
+7. ECS Service performs rolling deployment on AWS Fargate
 
 ## LEARNING OUTCOMES
 - Designed a highly available, secure VPC  
@@ -126,9 +165,49 @@ Application showing products:
 ![alt text](<images/products_display.png>)
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+## Issues experienced
+1. OIDC Role Assumption Failure (Github Actions - AWS)
+   Issue:
+   
+   Could not assume role with OIDC: Request ARN is invalid
 
+   Cause:
+   
+   This can occur if:
+   - The ARN for the GitHub role was not correctly formatted, due to account id that was not yet configured in GitHub repository variables.   
 
+   Solution: 
 
-VPC Endpoints
-- This architecture removes NAT Gateway to reduce cost 
-by using VPC endpoints for private AWS service communication.
+   - Configure the Account ID variable in the GitHub repository variables
+  
+2. Access Denial issue in Terraform Apply stage
+   Issue:
+   
+   Creating ECR Repository (app_ecr): operation error ECR: CreateRepository, https response error StatusCode: 400, RequestID: 805c2a67-2a90-43fc-b252-2332e6d184da, api error AccessDeniedException: User: arn:aws:sts::############:assumed-role/GitHubAction-Role/GitHub_to_AWS_via_FederatedOIDC is not authorized to perform: ecr:CreateRepository on resource: arn:aws:ecr:us-east-1:############:repository/app_ecr because no identity-based policy allows the ecr:CreateRepository action
+
+   Cause:
+   
+   - The CreateRepository action has not been explicitly allowed in the GitHubActions role policy permissions. 
+   
+   Solution: 
+
+   - Update the role policy permissions by adding CreateRepository action and specify "Allow" as effect
+
+3. ECS failure to pull container
+   Issue:
+   
+   CannotPullContainerError: The task cannot pull ############.dkr.ecr.us-east-1.amazonaws.com/product-app-ecr:latest from the registry ############.dkr.ecr.us-east-1.amazonaws.com/product-app-ecr:latest.
+
+   Cause:
+   
+   - ECS Tasks were not in the same subnets as VPC endpoints. 
+   
+   Solution: 
+
+   - Update assign_public_ip flag under service network configuration to false
+   - Update ECS Task Security group to allow outbound HTTPS
+
+## Future improvements 
+   - Add approval gates before production deployment
+   - Separate AWS accounts per environment using AWS Organizations
+
