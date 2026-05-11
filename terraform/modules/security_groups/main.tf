@@ -52,7 +52,7 @@ resource "aws_security_group" "ecs_task_sg" {
   vpc_id      = var.vpc_id
 
   tags = {
-    Name = "ecs_task_sg"
+    Name = "${var.app_prefix}-ecs-task-sg"
   }
 
 }
@@ -91,6 +91,11 @@ resource "aws_security_group_rule" "ecs_task_sg_egress_rule" {
 resource "aws_security_group" "vpce_sg" {
   name   = "${var.app_prefix}-vpce-sg"
   vpc_id = var.vpc_id
+
+  tags = {
+    Name = "${var.app_prefix}-vpce-sg"
+  }
+
 }
 
 resource "aws_security_group_rule" "vpce_https" {

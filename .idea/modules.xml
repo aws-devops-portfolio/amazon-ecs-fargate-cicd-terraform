@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/amazon-ecs-docker-image-deploy.iml" filepath="$PROJECT_DIR$/.idea/amazon-ecs-docker-image-deploy.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/amazon-ecs-fargate-cicd-terraform.iml" filepath="$PROJECT_DIR$/.idea/amazon-ecs-fargate-cicd-terraform.iml" />
     </modules>
   </component>
 </project>
