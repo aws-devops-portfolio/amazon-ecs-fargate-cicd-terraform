@@ -1,32 +1,33 @@
 # Amazon ECS Fargate CICD Terraform
 Docker image deployment to ECS with Terraform and CICD
 
-## OVERVIEW
+## Overview
 This project demonstrates a production-style, multi-environment deployment pipeline for containerized applications on AWS using ECS Fargate, Terraform, Docker, and GitHub Actions.
 
 The solution provisions isolated development and production environments using Infrastructure as Code (Terraform), with automated CI/CD workflows deploying application updates to Amazon ECS Fargate.
 
-## ARCHITECTURE
-- Terraform - infrasture as code
-- Virtual Private Cloud (VPC) - with two public and two private subnets
-- VPC Endpoint - allows private AWS service communication
-- Internet Gateway - allows internet access for public subnets
-- Security Groups - allows least priviledge network access
-- Route 53 - routes end users to internet applications by managing DNS records
-- Elastic Container Registry (ECR) - stores the Docker image
-- IAM - handles user, roles or services permissions
-- OpenID Connect (OIDC) - enables external entities to access AWS resources using temporary,    short-lived credentials
-- Elastic Container Service - orchestrates the Docker containers
-- Load Balancer - distributes traffic across Availability Zones
-- Application Autoscaling - automatically adjusts the capacity to maintain steady performance
-- Amazon S3 - manages Terraform backend state
-- Amazon Cloudwatch - displayes logs for monitoring 
+## Architecture components
+- **Terraform** - infrastructure as code provisioning
+- **Amazon VPC** - network isolation with public and private subnets
+- **VPC Endpoint** - private connectivity to AWS services
+- **Internet Gateway** - internet access for public subnets
+- **Security Groups** - allows least priviledge network access
+- **Route 53** - routes end users to internet applications by managing DNS records
+- **Amazon ECR** - Docker image registry
+- **IAM** - handles user, roles or services permissions
+- **OpenID Connect (OIDC)** - enables external entities to access AWS resources using temporary,    short-lived credentials
+- **Amazon ECS** - orchestrates the Docker containers
+- **Application Load Balancer** - distributes traffic across Availability Zones
+- **ACM certificates and ALB HTTPS listeners** - secure HTTPS
+- **Application Autoscaling** - automatically adjusts the capacity to maintain steady performance
+- **Amazon S3** - manages Terraform backend state
+- **Amazon Cloudwatch** - displays logs for monitoring 
 
-## DEPLOYMENT
+## Deployment
 - Provisioned using Terraform
 - Deployment automated through GitHub Actions
 
-## DIAGRAM
+## Diagram
 ![alt text](<images/architecture.png>)
 
 ## Multi-Environment Deployment
@@ -69,8 +70,8 @@ Workflow process:
 ## LEARNING OUTCOMES
 - Designed a highly available, secure VPC  
 - Automated ECS Fargate provisioning  
-- Integrated AWS OIDC Authentication with Github actions
-- Multi-staging deployments
+- Integrated AWS OIDC Authentication with GitHub actions
+- Multi-environment deployments
 
 **Terraform Remote State Backend (Amazon S3)**
 
@@ -126,7 +127,7 @@ Application Load Balancer created to distribute traffic across ECS tasks.
 
 **Target Group Health Status**
 
-Target group showing a healthy EC2 instance registered behind the load balancer.
+Target group showing healthy ECS tasks registered behind the Application Load Balancer.
 
 ![alt text](<images/target_group.png>)
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -166,7 +167,7 @@ Application showing products:
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 ## Issues experienced
-1. OIDC Role Assumption Failure (Github Actions - AWS)
+1. OIDC Role Assumption Failure (GitHub Actions - AWS)
    Issue:
    
    Could not assume role with OIDC: Request ARN is invalid
@@ -200,12 +201,33 @@ Application showing products:
 
    Cause:
    
-   - ECS Tasks were not in the same subnets as VPC endpoints. 
+   - ECS tasks were not deployed in subnets with access to VPC endpoints. 
    
    Solution: 
 
-   - Update assign_public_ip flag under service network configuration to false
-   - Update ECS Task Security group to allow outbound HTTPS
+   - Disabled public IP assignment
+   - Added HTTPS outbound rule
+   - Ensured ECS tasks and VPC endpoints shared private subnet routing
+
+# Manual Infrastructure Provisioning
+The infrastructure can also be provisioned manually using Terraform by following the steps below:
+
+1. Navigate to the Terraform root directory:
+   cd terraform
+2. Initialize Terraform with the production backend configuration:
+   terraform init -reconfigure -backend-config="backend-prod.hcl
+3. Provision the AWS infrastructure using the production environment variables:
+   terraform apply -auto-approve -var-file="environments/prod.tfvars"  
+
+# Infrastructure Cleanup
+To destroy the provisioned infrastructure:
+   terraform destroy -auto-approve -var-file="environments/prod.tfvars"
+
+# Key Design Decisions
+   - Used ECS Fargate instead of EC2 to reduce infrastructure management overhead
+   - Used GitHub OIDC instead of long-lived IAM credentials
+   - Implemented VPC endpoints to reduce NAT Gateway dependency  
+   - Separated environments using Terraform backend and variable isolation
 
 ## Future improvements 
    - Add approval gates before production deployment
